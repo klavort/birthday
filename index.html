@@ -162,6 +162,22 @@
       text-align: center;
       word-wrap: break-word;
     }
+    /* Mobile Adjustments */
+    @media (max-width: 600px) {
+      /* Increase camera height on mobile */
+      #videoElement, #filter-canvas {
+        height: 320px;
+      }
+      #video-container {
+        height: 320px;
+        width: 320px;
+      }
+      /* Increase modal message box width on mobile */
+      #final-modal .modal-content {
+        width: 80%;
+        max-width: 600px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -396,7 +412,11 @@
     async function updateLiveFilter() {
       filterCanvas.width = 320;
       filterCanvas.height = 240;
-      filterCtx.drawImage(videoElement, 0, 0, filterCanvas.width, filterCanvas.height);
+      // Mirror the video feed for a smartphone-like selfie view
+      filterCtx.save();
+      filterCtx.scale(-1, 1);
+      filterCtx.drawImage(videoElement, -filterCanvas.width, 0, filterCanvas.width, filterCanvas.height);
+      filterCtx.restore();
       const filterType = filterSelect.value;
       drawFilterOverlay(filterCtx, filterCanvas.width, filterCanvas.height, filterType);
       animationFrameId = requestAnimationFrame(updateLiveFilter);
