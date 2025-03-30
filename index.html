@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>20th Birthday Surprise</title>
+  <!-- Google Font for a modern, playful look -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+  <!-- (Optional) Load face-api.js if you plan to use filter masks -->
+  <script defer src="https://unpkg.com/face-api.js"></script>
+  <style>
+    /* Global Styles */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #ff758c, #ff7eb3);
+      color: #fff;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      transition: background 1s ease;
+    }
+    .container {
+      max-width: 600px;
+      width: 90%;
+      padding: 20px;
+      margin: 20px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.3);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .hidden { display: none; }
+    h1, h2, p { margin: 20px 0; }
+    .btn {
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background: #ffcc00;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+      transition: transform 0.2s, background 0.3s;
+    }
+    .btn:hover { transform: scale(1.1); background: #ffdd44; }
+    #no-btn {
+      position: relative;
+      transition: all 0.2s ease-in-out;
+    }
+    /* Cake Image – using dummyimage.com for reliability */
+    .cake-img {
+      width: 250px;
+      max-width: 90%;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+    .cake-img:hover { transform: scale(1.05); }
+    /* Fireworks Canvas */
+    #fireworks-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+    }
+    /* Balloon Styles – a 60px balloon with a handle shifted 30px down */
+    .balloon {
+      width: 60px;
+      height: 60px;
+      background: radial-gradient(circle at 30% 30%, #ff7eb3, #ff758c);
+      border-radius: 50%;
+      position: absolute;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      animation: balloonFloat 8s ease-in-out infinite;
+    }
+    .balloon::after {
+      content: "";
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 30px;
+      background: #fff;
+    }
+    @keyframes balloonFloat {
+      0% { transform: translate(0, 0); }
+      50% { transform: translate(20px, -50px); }
+      100% { transform: translate(0, 0); }
+    }
+    /* Stage 5: Selfie Booth */
+    #videoElement {
+      width: 320px;
+      height: 240px;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+    }
+    #filter-canvas {
+      width: 320px;
+      height: 240px;
+      border-radius: 8px;
+      background: transparent;
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    /* Filter Selector */
+    #filter-select {
+      margin: 10px;
+      padding: 8px;
+      font-size: 1em;
+      border-radius: 4px;
+      border: none;
+    }
+    /* Final Modal Popup */
+    #final-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    #final-modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #final-modal .modal-content {
+      background: #fff;
+      color: #000;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      width: 60%;
+      max-width: 400px;
+      height: auto;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #final-modal .modal-content p {
+      text-align: center;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fireworks Canvas -->
+  <canvas id="fireworks-canvas" class="hidden"></canvas>
+
+  <!-- Stage 1: Welcome -->
+  <div class="container" id="stage1">
+    <h1>Here we are again :)</h1>
+    <p>Once again i'm beating you in creativeness for the 3rd year in a row!</p>
+    <button class="btn" id="start-btn">Let's Begin!</button>
+  </div>
+
+  <!-- Stage 2: Special Yes/No Question -->
+  <div class="container hidden" id="stage2">
+    <h2>Just a Quick Question...</h2>
+    <p>Do you believe this will be the BEST birthday surprise ever?</p>
+    <button class="btn" id="yes-btn">Yes my king!</button>
+    <button class="btn hidden" id="no-btn">No!</button>
+  </div>
+
+  <!-- Stage 3: Balloon-Popping Quest -->
+  <div class="container hidden" id="stage3" style="position: relative; height:300px;">
+    <h2>Pop the Balloons!</h2>
+    <p>Pop all the balloons (like you'd pop them t...) 🤫</p>
+    <!-- Balloons will be created dynamically -->
+    <button class="btn hidden" id="quest-complete-btn">Good girl! Let's continue.</button>
+  </div>
+
+  <!-- Stage 4: Cake & Candle Blowing -->
+  <div class="container hidden" id="stage4">
+    <h2>Time for Cake!</h2>
+    <p>Click the cake then blow into your microphone to extinguish the candles.</p>
+    <img src="https://i.ibb.co/cX7JZ2Lk/img2.webp" id="cake" class="cake-img" alt="Cake Lit" />
+    <p id="cake-instructions">You already know how to blow things, don't you 😉</p>
+  </div>
+
+  <!-- Stage 5: Selfie Booth with Live Filter -->
+  <div class="container hidden" id="stage5">
+    <h2>Selfie Time!</h2>
+    <p>Choose your filter and smile with your birthday look!</p>
+    <p>Don't forget to download the pic and send it to me 😛</p>
+    <select id="filter-select">
+      <option value="none">None</option>
+      <option value="party">Party Hat</option>
+      <option value="sunglasses">Sunglasses</option>
+      <option value="catears">Cat Ears</option>
+      <option value="crown">Birthday Crown</option>
+      <option value="mustache">Funny Mustache</option>
+      <option value="balloonface">Balloon Face</option>
+    </select>
+    <div id="video-container" style="position: relative; width: 320px; height: 240px; margin: auto;">
+      <video id="videoElement" autoplay muted playsinline></video>
+      <canvas id="filter-canvas"></canvas>
+    </div>
+    <br>
+    <button class="btn" id="capture-btn">Capture Selfie</button>
+    <button class="btn hidden" id="download-btn">Download Selfie</button>
+  </div>
+
+  <!-- Final Modal Popup -->
+  <div id="final-modal">
+    <div class="modal-content">
+      <h2>Happy Birthday Pealora!</h2>
+      <p>It's the third year carrying your life with my awesomeness and sometimes I be thinking, what you'd do without having the perfect man in your life. I know you've been waiting for my surprise, but good things require patience so here it is. Hope you enjoy your first year of adult life where you're no longer a teen. Love you too (i don't actually but yk it already) 😘</p>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    // Stage Management
+    const stage1 = document.getElementById("stage1");
+    const stage2 = document.getElementById("stage2");
+    const stage3 = document.getElementById("stage3");
+    const stage4 = document.getElementById("stage4");
+    const stage5 = document.getElementById("stage5");
+    const finalModal = document.getElementById("final-modal");
+
+    // Stage 1: Welcome
+    document.getElementById("start-btn").addEventListener("click", () => {
+      stage1.classList.add("hidden");
+      stage2.classList.remove("hidden");
+      setTimeout(() => { document.getElementById("no-btn").classList.remove("hidden"); }, 500);
+    });
+
+    // Stage 2: Yes/No Question
+    const noBtn = document.getElementById("no-btn");
+    noBtn.addEventListener("mouseover", moveNoButton);
+    noBtn.addEventListener("click", moveNoButton);
+    function moveNoButton() {
+      const rect = stage2.getBoundingClientRect();
+      const randomX = Math.random() * (rect.width - noBtn.offsetWidth);
+      const randomY = Math.random() * (rect.height - noBtn.offsetHeight);
+      noBtn.style.position = "absolute";
+      noBtn.style.left = randomX + "px";
+      noBtn.style.top = randomY + "px";
+    }
+    document.getElementById("yes-btn").addEventListener("click", () => {
+      stage2.classList.add("hidden");
+      stage3.classList.remove("hidden");
+      createBalloons();
+    });
+
+    // Stage 3: Balloon-Popping Quest
+    let balloonsToPop = 5;
+    function createBalloons() {
+      stage3.querySelectorAll(".balloon").forEach(b => b.remove());
+      balloonsToPop = 5;
+      for (let i = 0; i < balloonsToPop; i++) {
+        const balloon = document.createElement("div");
+        balloon.className = "balloon";
+        balloon.style.left = Math.random() * (stage3.clientWidth - 60) + "px";
+        balloon.style.top = Math.random() * (stage3.clientHeight - 60) + "px";
+        balloon.addEventListener("click", () => {
+          balloon.style.transition = "opacity 0.5s";
+          balloon.style.opacity = 0;
+          setTimeout(() => {
+            balloon.remove();
+            balloonsToPop--;
+            if (balloonsToPop === 0) {
+              document.getElementById("quest-complete-btn").classList.remove("hidden");
+            }
+          }, 500);
+        });
+        stage3.appendChild(balloon);
+      }
+    }
+    document.getElementById("quest-complete-btn").addEventListener("click", () => {
+      stage3.classList.add("hidden");
+      stage4.classList.remove("hidden");
+    });
+
+    // Stage 4: Cake & Candle Blowing
+    const cake = document.getElementById("cake");
+    let micStarted = false;
+    cake.addEventListener("click", () => {
+      if (!micStarted) {
+        startMicrophone();
+        micStarted = true;
+      }
+    });
+    function startMicrophone() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const analyser = audioContext.createAnalyser();
+          const microphone = audioContext.createMediaStreamSource(stream);
+          microphone.connect(analyser);
+          analyser.fftSize = 256;
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          function checkVolume() {
+            analyser.getByteFrequencyData(dataArray);
+            let average = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+            if (average > 50) {
+              blowOutCandles();
+              stream.getTracks().forEach(track => track.stop());
+            } else {
+              requestAnimationFrame(checkVolume);
+            }
+          }
+          checkVolume();
+        })
+        .catch(err => console.error("Microphone access denied", err));
+    }
+    function blowOutCandles() {
+      cake.src = "https://i.ibb.co/TqPCkS3t/img1.webp";
+      document.getElementById("cake-instructions").innerText = "Candles blown out!";
+      launchFireworks();
+      setTimeout(() => {
+        stage4.classList.add("hidden");
+        stage5.classList.remove("hidden");
+        startCameraWithLiveFilter();
+      }, 3000);
+    }
+    function launchFireworks() {
+      const canvas = document.getElementById("fireworks-canvas");
+      canvas.classList.remove("hidden");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      let particles = [];
+      function createParticles(x, y) {
+        for (let i = 0; i < 50; i++) {
+          particles.push({
+            x: x,
+            y: y,
+            radius: Math.random() * 3 + 2,
+            color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+            speedX: (Math.random() - 0.5) * 8,
+            speedY: (Math.random() - 0.5) * 8,
+            alpha: 1
+          });
+        }
+      }
+      createParticles(canvas.width / 2, canvas.height / 2);
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p, index) => {
+          p.x += p.speedX;
+          p.y += p.speedY;
+          p.alpha -= 0.02;
+          if (p.alpha <= 0) { particles.splice(index, 1); }
+          else {
+            ctx.globalAlpha = p.alpha;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+          }
+        });
+        if (particles.length > 0) requestAnimationFrame(animate);
+        else { ctx.globalAlpha = 1; canvas.classList.add("hidden"); }
+      }
+      animate();
+    }
+    let videoStream;
+    const videoElement = document.getElementById("videoElement");
+    const filterCanvas = document.getElementById("filter-canvas");
+    const filterCtx = filterCanvas.getContext("2d");
+    let animationFrameId;
+    const filterSelect = document.getElementById("filter-select");
+    function startCameraWithLiveFilter() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          videoStream = stream;
+          videoElement.srcObject = stream;
+          videoElement.play();
+          updateLiveFilter();
+        })
+        .catch(err => console.error("Camera access denied", err));
+    }
+    async function updateLiveFilter() {
+      filterCanvas.width = 320;
+      filterCanvas.height = 240;
+      filterCtx.drawImage(videoElement, 0, 0, filterCanvas.width, filterCanvas.height);
+      const filterType = filterSelect.value;
+      drawFilterOverlay(filterCtx, filterCanvas.width, filterCanvas.height, filterType);
+      animationFrameId = requestAnimationFrame(updateLiveFilter);
+    }
+    function drawFilterOverlay(ctx, width, height, filterType) {
+      // For simplicity, this sample draws simple overlays.
+      const centerX = width / 2;
+      const centerY = height / 2;
+      ctx.save();
+      if(filterType === "party"){
+        ctx.fillStyle = "#FF69B4";
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - 80);
+        ctx.lineTo(centerX - 50, centerY - 10);
+        ctx.lineTo(centerX + 50, centerY - 10);
+        ctx.closePath();
+        ctx.fill();
+      } else if(filterType === "sunglasses"){
+        ctx.fillStyle = "black";
+        ctx.fillRect(centerX - 80, centerY - 40, 50, 20);
+        ctx.fillRect(centerX + 30, centerY - 40, 50, 20);
+        ctx.fillRect(centerX - 30, centerY - 35, 60, 5);
+      } else if(filterType === "catears"){
+        ctx.fillStyle = "#FFD700";
+        ctx.beginPath();
+        ctx.moveTo(centerX - 70, centerY - 80);
+        ctx.lineTo(centerX - 50, centerY - 130);
+        ctx.lineTo(centerX - 30, centerY - 80);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(centerX + 70, centerY - 80);
+        ctx.lineTo(centerX + 50, centerY - 130);
+        ctx.lineTo(centerX + 30, centerY - 80);
+        ctx.closePath();
+        ctx.fill();
+      } else if(filterType === "crown"){
+        // Draw a simple birthday crown
+        ctx.fillStyle = "#FFD700";
+        ctx.beginPath();
+        ctx.moveTo(centerX - 50, centerY - 80);
+        ctx.lineTo(centerX - 30, centerY - 120);
+        ctx.lineTo(centerX - 10, centerY - 80);
+        ctx.lineTo(centerX + 10, centerY - 120);
+        ctx.lineTo(centerX + 30, centerY - 80);
+        ctx.lineTo(centerX + 50, centerY - 120);
+        ctx.lineTo(centerX + 50, centerY - 80);
+        ctx.closePath();
+        ctx.fill();
+      } else if(filterType === "mustache"){
+        // Draw a simple funny mustache
+        ctx.fillStyle = "#000";
+        // Left half
+        ctx.beginPath();
+        ctx.ellipse(centerX - 20, centerY + 20, 15, 8, 0, Math.PI, 0, true);
+        ctx.fill();
+        // Right half
+        ctx.beginPath();
+        ctx.ellipse(centerX + 20, centerY + 20, 15, 8, 0, Math.PI, 0, true);
+        ctx.fill();
+      } else if(filterType === "balloonface"){
+        // Draw a balloon overlay on the face
+        ctx.fillStyle = "#ff7eb3";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - 40, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - 10);
+        ctx.lineTo(centerX, centerY + 10);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    document.getElementById("capture-btn").addEventListener("click", captureSelfie);
+    function captureSelfie() {
+      cancelAnimationFrame(animationFrameId);
+      videoStream.getTracks().forEach(track => track.stop());
+      const dataURL = filterCanvas.toDataURL("image/png");
+      const downloadBtn = document.getElementById("download-btn");
+      downloadBtn.classList.remove("hidden");
+      downloadBtn.onclick = () => {
+        const a = document.createElement("a");
+        a.href = dataURL;
+        a.download = "birthday_selfie.png";
+        a.click();
+      };
+      setTimeout(showFinalModal, 2000);
+    }
+    function showFinalModal() {
+      finalModal.classList.add("show");
+    }
+    function closeModal() {
+      finalModal.classList.remove("show");
+    }
+  </script>
+</body>
+</html>
