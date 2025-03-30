@@ -98,16 +98,23 @@
       100% { transform: translate(0, 0); }
     }
     /* Stage 5: Selfie Booth */
+    #video-container {
+      position: relative;
+      width: 320px;
+      height: 426px;
+      margin: auto;
+      margin-bottom: 20px; /* extra space for the buttons */
+    }
     #videoElement {
       width: 320px;
-      height: 240px;
+      height: 426px;
       border-radius: 8px;
       background: #000;
       display: block;
     }
     #filter-canvas {
       width: 320px;
-      height: 240px;
+      height: 426px;
       border-radius: 8px;
       background: transparent;
       pointer-events: none;
@@ -162,15 +169,17 @@
       text-align: center;
       word-wrap: break-word;
     }
+    /* Additional spacing for buttons in Stage 5 */
+    #stage5 #capture-btn,
+    #stage5 #download-btn {
+      margin-top: 20px;
+    }
     /* Mobile Adjustments */
     @media (max-width: 600px) {
-      /* Increase camera height on mobile */
-      #videoElement, #filter-canvas {
-        height: 320px;
-      }
-      #video-container {
-        height: 320px;
-        width: 320px;
+      /* For smaller screens, scale the video container proportionally */
+      #video-container, #videoElement, #filter-canvas {
+        width: 280px;
+        height: calc(280px * (426 / 320));
       }
       /* Increase modal message box width on mobile */
       #final-modal .modal-content {
@@ -229,7 +238,7 @@
       <option value="mustache">Funny Mustache</option>
       <option value="balloonface">Balloon Face</option>
     </select>
-    <div id="video-container" style="position: relative; width: 320px; height: 240px; margin: auto;">
+    <div id="video-container">
       <video id="videoElement" autoplay muted playsinline></video>
       <canvas id="filter-canvas"></canvas>
     </div>
@@ -242,7 +251,7 @@
   <div id="final-modal">
     <div class="modal-content">
       <h2>Happy Birthday Pealora!</h2>
-      <p>It's the third year carrying your life with my awesomeness and sometimes I be thinking, what you'd do without having the perfect man in your life. I know you've been waiting for my surprise, but good things require patience so here it is. Hope you enjoy your first year of adult life where you're no longer a teen. Love you too (i don't actually but yk it already) 😘</p>
+      <p>It's the third year carrying your life with my awesomeness and sometimes I be thinking, what would you do without having the perfect man in your life. I know you've been waiting for my surprise, but good things require patience so here it is. Hope you enjoy your first year of adult life where you're no longer a teen. Love you too (i don't actually but yk it already) 😘</p>
       <button class="btn" onclick="closeModal()">Close</button>
     </div>
   </div>
@@ -410,8 +419,9 @@
         .catch(err => console.error("Camera access denied", err));
     }
     async function updateLiveFilter() {
+      // Update dimensions to match new portrait ratio
       filterCanvas.width = 320;
-      filterCanvas.height = 240;
+      filterCanvas.height = 426;
       // Mirror the video feed for a smartphone-like selfie view
       filterCtx.save();
       filterCtx.scale(-1, 1);
